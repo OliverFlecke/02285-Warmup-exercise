@@ -1,16 +1,85 @@
 package searchclient;
 
+import java.awt.Point;
 import java.util.Comparator;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map.Entry;
 
 import searchclient.NotImplementedException;
 
 public abstract class Heuristic implements Comparator<Node> {
+	private final HashMap<Character,Set<Point>> goals;
+	
 	public Heuristic(Node initialState) {
 		// Here's a chance to pre-process the static parts of the level.
+		// Map all goals to their corresponding characters
+		HashMap<Character,Set<Point>> goals = new HashMap<Character,Set<Point>>();
+		for (int row = 0; row < initialState.MAX_ROW; row++) {
+			for (int col = 0; col < initialState.MAX_COL; col++) {
+				if (initialState.goals[row][col] > 0) {
+					if (goals.containsKey(initialState.goals[row][col])) {
+						goals.get(initialState.goals[row][col]).add(new Point(row,col));
+					} else {
+						Set<Point> points = new HashSet<Point>();
+						points.add(new Point(row,col));
+						goals.put(initialState.goals[row][col],points);
+					}
+				}
+			}
+		}
+		this.goals = goals;
 	}
 
 	public int h(Node n) {
-		throw new NotImplementedException();
+		int h = 0;
+		// Map all boxes to their corresponding characters
+		HashMap<Character,Set<Point>> boxes = new HashMap<Character,Set<Point>>();
+		for (int row = 0; row < n.MAX_ROW; row++) {
+			for (int col = 0; col < n.MAX_COL; col++) {
+				if (n.boxes[row][col] > 0) {
+					if (boxes.containsKey(n.boxes[row][col])) {
+						boxes.get(n.boxes[row][col]).add(new Point(row,col));
+					} else {
+						Set<Point> points = new HashSet<Point>();
+						points.add(new Point(row,col));
+						boxes.put(n.boxes[row][col],points);
+					}
+				}
+			}
+		}
+		
+		int agentDistance = Integer.MAX_VALUE;
+		
+		for (Entry<Character,Set<Point>> goalEntry : goals.entrySet()) {
+			for (Point goal : goalEntry.getValue()) {
+				// Continue if the goal has a correct box
+				// Remove the box from the HashMap if its on a goal?
+				if (n.boxes[goal.x][goal.y] == Character.toUpperCase(goalEntry.getKey()))
+					continue;
+				// Find the box closest to the goal
+				int shortestDistance = Integer.MAX_VALUE;
+				Point shortestBox = null;
+				for (Point box : boxes.get(Character.toUpperCase(goalEntry.getKey()))) {					
+					int distance = Math.abs(goal.x-box.x) + Math.abs(goal.y-box.y);
+					if (distance < shortestDistance) {
+						shortestDistance = distance;
+						shortestBox = box;
+					}
+				}
+				int distance = Math.abs(n.agentRow-shortestBox.x) + Math.abs(n.agentCol-shortestBox.y);
+				if (distance < agentDistance)
+					agentDistance = distance;
+				h += shortestDistance;
+			}
+		}
+		
+		// If in a goal state
+		if (h == 0)
+			return h;
+		
+		return h + agentDistance;
 	}
 
 	public abstract int f(Node n);

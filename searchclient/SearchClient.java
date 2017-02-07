@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.ArrayList;
 
 import searchclient.Memory;
 import searchclient.Strategy.*;
@@ -23,13 +25,27 @@ public class SearchClient {
 		int row = 0;
 		boolean agentFound = false;
 		this.initialState = new Node(null);
+		
+		List<List<Boolean>> wallsList = new ArrayList<List<Boolean>>();
+		List<List<Character>> boxesList = new ArrayList<List<Character>>();
+		List<List<Character>> goalsList = new ArrayList<List<Character>>();
 
 		while (!line.equals("")) {
+			// Add rows
+			ArrayList<Boolean> wallsRow = new ArrayList<Boolean>();
+			ArrayList<Character> boxesRow = new ArrayList<Character>();
+			ArrayList<Character> goalsRow = new ArrayList<Character>();
+			wallsList.add(wallsRow);
+			boxesList.add(boxesRow);
+			goalsList.add(goalsRow);
+			// Add cols
 			for (int col = 0; col < line.length(); col++) {
 				char chr = line.charAt(col);
 
 				if (chr == '+') { // Wall.
-					this.initialState.walls[row][col] = true;
+					wallsRow.add(true);
+					boxesRow.add('\0');
+					goalsRow.add('\0');
 				} else if ('0' <= chr && chr <= '9') { // Agent.
 					if (agentFound) {
 						System.err.println("Error, not a single agent level");
@@ -38,12 +54,21 @@ public class SearchClient {
 					agentFound = true;
 					this.initialState.agentRow = row;
 					this.initialState.agentCol = col;
+					wallsRow.add(false);
+					boxesRow.add('\0');
+					goalsRow.add('\0');
 				} else if ('A' <= chr && chr <= 'Z') { // Box.
-					this.initialState.boxes[row][col] = chr;
+					wallsRow.add(false);
+					boxesRow.add(chr);
+					goalsRow.add('\0');
 				} else if ('a' <= chr && chr <= 'z') { // Goal.
-					this.initialState.goals[row][col] = chr;
-				} else if (chr == ' ') {
-					// Free space.
+					wallsRow.add(false);
+					boxesRow.add('\0');
+					goalsRow.add(chr);
+				} else if (chr == ' ') { // Free space.
+					wallsRow.add(false);
+					boxesRow.add('\0');
+					goalsRow.add('\0');
 				} else {
 					System.err.println("Error, read invalid level character: " + (int) chr);
 					System.exit(1);
@@ -52,6 +77,45 @@ public class SearchClient {
 			line = serverMessages.readLine();
 			row++;
 		}
+		
+		int maxRows = wallsList.size();
+		int maxCols = 0;		
+		
+		for (int i = 0; i < maxRows; i++) {
+			int colSize = wallsList.get(i).size();
+			if (colSize > maxCols) {
+				maxCols = colSize;
+			}
+		}
+		
+		this.initialState.MAX_ROW = maxRows;
+		this.initialState.MAX_COL = maxCols;
+		
+		boolean[][] walls = new boolean[maxRows][maxCols];
+		char[][] boxes = new char[maxRows][maxCols];
+		char[][] goals = new char[maxRows][maxCols];
+		
+		for (int i = 0; i < wallsList.size(); i++) {
+			for (int j = 0; j < wallsList.get(i).size(); j++) {
+				walls[i][j] = wallsList.get(i).get(j);
+			}
+		}
+		
+		for (int i = 0; i < boxesList.size(); i++) {
+			for (int j = 0; j < boxesList.get(i).size(); j++) {
+				boxes[i][j] = boxesList.get(i).get(j);
+			}
+		}
+		
+		for (int i = 0; i < goalsList.size(); i++) {
+			for (int j = 0; j < goalsList.get(i).size(); j++) {
+				goals[i][j] = goalsList.get(i).get(j);
+			}
+		}
+		
+		this.initialState.walls = walls;
+		this.initialState.boxes = boxes;
+		this.initialState.goals = goals;
 	}
 
 	public LinkedList<Node> Search(Strategy strategy) throws IOException {
