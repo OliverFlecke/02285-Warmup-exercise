@@ -38,14 +38,21 @@ public abstract class Heuristic implements Comparator<Node> {
 		HashMap<Character,Set<Point>> boxes = new HashMap<Character,Set<Point>>();
 		for (int row = 0; row < n.MAX_ROW; row++) {
 			for (int col = 0; col < n.MAX_COL; col++) {
-				if (n.boxes[row][col] > 0) {
-					if (boxes.containsKey(n.boxes[row][col])) {
-						boxes.get(n.boxes[row][col]).add(new Point(row,col));
-					} else {
-						Set<Point> points = new HashSet<Point>();
-						points.add(new Point(row,col));
-						boxes.put(n.boxes[row][col],points);
-					}
+				char boxChar = n.boxes[row][col];
+				// No box in cell
+				if (boxChar == 0)
+					continue;
+				// Box on goal
+				if (boxChar == Character.toUpperCase(n.goals[row][col]))
+					continue;
+				// Add box' point to boxes
+				Point boxPoint = new Point(row,col);
+				if (boxes.containsKey(boxChar)) {
+					boxes.get(boxChar).add(boxPoint);
+				} else {
+					Set<Point> points = new HashSet<Point>();
+					points.add(boxPoint);
+					boxes.put(boxChar,points);
 				}
 			}
 		}
@@ -53,15 +60,15 @@ public abstract class Heuristic implements Comparator<Node> {
 		int agentDistance = Integer.MAX_VALUE;
 		
 		for (Entry<Character,Set<Point>> goalEntry : goals.entrySet()) {
+			char boxChar = Character.toUpperCase(goalEntry.getKey());
 			for (Point goal : goalEntry.getValue()) {
-				// Continue if the goal has a correct box
-				// Remove the box from the HashMap if its on a goal?
-				if (n.boxes[goal.x][goal.y] == Character.toUpperCase(goalEntry.getKey()))
+				// Box on goal
+				if (boxChar == n.boxes[goal.x][goal.y])
 					continue;
 				// Find the box closest to the goal
 				int shortestDistance = Integer.MAX_VALUE;
 				Point shortestBox = null;
-				for (Point box : boxes.get(Character.toUpperCase(goalEntry.getKey()))) {					
+				for (Point box : boxes.get(boxChar)) {
 					int distance = Math.abs(goal.x-box.x) + Math.abs(goal.y-box.y);
 					if (distance < shortestDistance) {
 						shortestDistance = distance;
@@ -72,12 +79,14 @@ public abstract class Heuristic implements Comparator<Node> {
 				if (distance < agentDistance)
 					agentDistance = distance;
 				h += shortestDistance;
+				// Remove box to prevent goals from finding the same closest box
+				boxes.get(boxChar).remove(shortestBox);
 			}
 		}
 		
-		// If in a goal state
-		if (h == 0)
+		if (h == 0) {
 			return h;
+		}
 		
 		return h + agentDistance;
 	}

@@ -145,11 +145,13 @@ public class Node {
 
 	public LinkedList<Node> extractPlan() {
 		LinkedList<Node> plan = new LinkedList<Node>();
-		Node n = this;
-		while (!n.isInitialState()) {
+		for (Node n = this; !n.isInitialState(); n = n.parent) 
 			plan.addFirst(n);
-			n = n.parent;
-		}
+		//Node n = this;
+		//while (!n.isInitialState()) {
+		//	plan.addFirst(n);
+		//	n = n.parent;
+		//}		
 		return plan;
 	}
 
