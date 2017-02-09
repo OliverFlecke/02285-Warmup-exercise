@@ -16,6 +16,8 @@ public class Node {
 
 	public int agentRow;
 	public int agentCol;
+	
+	public int goalCount;
 
 	// Arrays are indexed from the top-left of the level, with first index being row and second being column.
 	// Row 0: (0,0) (0,1) (0,2) (0,3) ...
