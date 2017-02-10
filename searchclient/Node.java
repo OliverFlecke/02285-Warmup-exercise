@@ -69,6 +69,20 @@ public class Node {
 		}
 		return true;
 	}
+	
+	public int countAchievedGoals() {
+		int count = 0;
+		for (int row = 1; row < MAX_ROW - 1; row++) {
+			for (int col = 1; col < MAX_COL - 1; col++) {
+				char g = goals[row][col];
+				char b = Character.toLowerCase(boxes[row][col]);
+				if (g > 0 && b == g) {
+					count++;
+				}
+			}
+		}		
+		return count;
+	}
 
 	public ArrayList<Node> getExpandedNodes() {
 		ArrayList<Node> expandedNodes = new ArrayList<Node>(Command.EVERY.length);
