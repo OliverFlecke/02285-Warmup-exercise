@@ -1,0 +1,46 @@
+	/**
+	 * Bruteforce pathfinding, currently returns a heuristic map of distances from 'initial' to all other nodes on the map.
+	 * initial should generally be a goal or sub-goal for the agent.
+	 * Performance heavy, use sparingly and reuse results where possible.
+	**/
+	public int[][] dijkstra(Point initial, boolean[][] walls){
+		int[][] map = new int[walls.length][walls[0].length];
+		for (int i = 0; i < map.length; i++)
+			for (int j = 0; j < map[i].length; j++)
+				map[i][j] = Integer.MAX_VALUE;
+
+		map[initial.x][initial.y] = 0;
+
+		traverse(initial, map, walls);
+
+		for (int i = 0; i < map.length; i++){
+			for (int j = 0; j < map[i].length; j++){
+				if (map[i][j] == Integer.MAX_VALUE)
+					System.err.print("* ");
+				else
+					System.err.print(map[i][j] + " ");
+			}
+			System.err.println();
+		}
+
+		return map;
+	}
+
+	private void traverse(Point current, int[][] map, boolean[][] walls){
+		if (!walls[current.x + 1][current.y] && map[current.x][current.y] + 1 < map[current.x + 1][current.y]){ //Go EAST
+			map[current.x + 1][current.y] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x + 1, current.y), map, walls);
+		}
+		if (!walls[current.x - 1][current.y] && map[current.x][current.y] + 1 < map[current.x - 1][current.y]) { //Go WEST
+			map[current.x - 1][current.y] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x - 1, current.y), map, walls);
+		}
+		if (!walls[current.x][current.y + 1] && map[current.x][current.y] + 1 < map[current.x][current.y + 1]) { //Go NORTH
+			map[current.x][current.y + 1] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x, current.y + 1), map, walls);
+		}
+		if (!walls[current.x][current.y - 1] && map[current.x][current.y] + 1 < map[current.x][current.y - 1]) { //Go SOUTH
+			map[current.x][current.y - 1] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x, current.y - 1), map, walls);
+		}
+	}

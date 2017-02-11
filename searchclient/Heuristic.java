@@ -7,17 +7,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
-import searchclient.NotImplementedException;
-
 public abstract class Heuristic implements Comparator<Node> {
 	private final HashMap<Character,Set<Point>> goals;
+	private final HashMap<Character,Set<Integer[][]>> goalMaps;
 	
 	public Heuristic(Node initialState) {
 		// Here's a chance to pre-process the static parts of the level.
-		// Map all goals to their corresponding characters
+		// Map all goals and boxes to their corresponding characters
 		HashMap<Character,Set<Point>> goals = new HashMap<Character,Set<Point>>();
-		for (int row = 0; row < initialState.MAX_ROW; row++) {
-			for (int col = 0; col < initialState.MAX_COL; col++) {
+		HashMap<Character,Set<Point>> boxes = new HashMap<Character,Set<Point>>();
+		for (int row = 0; row < Node.MAX_ROW; row++) {
+			for (int col = 0; col < Node.MAX_COL; col++) {
 				if (initialState.goals[row][col] > 0) {
 					if (goals.containsKey(initialState.goals[row][col])) {
 						goals.get(initialState.goals[row][col]).add(new Point(row,col));
@@ -27,17 +27,109 @@ public abstract class Heuristic implements Comparator<Node> {
 						goals.put(initialState.goals[row][col],points);
 					}
 				}
+				if (initialState.boxes[row][col] > 0){
+					if (boxes.containsKey(initialState.boxes[row][col])) {
+						boxes.get(initialState.boxes[row][col]).add(new Point(row,col));
+					} else {
+						Set<Point> points = new HashSet<Point>();
+						points.add(new Point(row,col));
+						boxes.put(initialState.boxes[row][col],points);
+					}
+				}
 			}
 		}
 		this.goals = goals;
+
+		HashMap<Character, Set<Integer[][]>> goalMaps = new HashMap<Character,Set<Integer[][]>>();
+		for (Entry<Character,Set<Point>> entry : goals.entrySet()){
+			char key = entry.getKey();
+			for (Point goal : goals.get(key)){
+				Integer[][] map = dijkstra(goal, initialState.walls);
+				if (goalMaps.containsKey(key)){
+					goalMaps.get(key).add(map);
+				} else {
+					Set<Integer[][]> maps = new HashSet<Integer[][]>();
+					maps.add(map);
+					goalMaps.put(key, maps);
+				}
+			}
+		}
+		this.goalMaps = goalMaps;
+		
 	}
 
-	public int h(Node n) {
+	public int h(Node n){
+		int h = 0;
+
+		for (int row = 0; row < Node.MAX_ROW; row++) {
+			for (int col = 0; col < Node.MAX_COL; col++) {
+				if (n.boxes[row][col] > 0 && Character.toLowerCase(n.boxes[row][col]) != n.goals[row][col]){
+					int distance = Integer.MAX_VALUE;
+					for (Integer[][] map : goalMaps.get(Character.toLowerCase(n.boxes[row][col]))){
+						if (map[row][col] < distance)
+							distance = map[row][col];
+					}
+					h += distance;
+				}
+			}
+		}
+
+		return h;
+	}
+
+	/**
+	 * Bruteforce pathfinding, currently returns a heuristic map of distances from 'initial' to all other nodes on the map.
+	 * initial should generally be a goal or sub-goal for the agent.
+	 * Performance heavy, use sparingly and reuse results where possible.
+	**/
+	public Integer[][] dijkstra(Point initial, boolean[][] walls){
+		Integer[][] map = new Integer[walls.length][walls[0].length];
+		for (int i = 0; i < map.length; i++)
+			for (int j = 0; j < map[i].length; j++)
+				map[i][j] = Integer.MAX_VALUE;
+
+		map[initial.x][initial.y] = 0;
+
+		traverse(initial, map, walls);
+
+//		for (int i = 0; i < map.length; i++){
+//			for (int j = 0; j < map[i].length; j++){
+//				if (map[i][j] == Integer.MAX_VALUE)
+//					System.err.print("* ");
+//				else
+//					System.err.print(map[i][j] + " ");
+//			}
+//			System.err.println();
+//		}
+
+		return map;
+	}
+
+	private void traverse(Point current, Integer[][] map, boolean[][] walls){
+		if (!walls[current.x + 1][current.y] && map[current.x][current.y] + 1 < map[current.x + 1][current.y]){ //Go EAST
+			map[current.x + 1][current.y] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x + 1, current.y), map, walls);
+		}
+		if (!walls[current.x - 1][current.y] && map[current.x][current.y] + 1 < map[current.x - 1][current.y]) { //Go WEST
+			map[current.x - 1][current.y] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x - 1, current.y), map, walls);
+		}
+		if (!walls[current.x][current.y + 1] && map[current.x][current.y] + 1 < map[current.x][current.y + 1]) { //Go NORTH
+			map[current.x][current.y + 1] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x, current.y + 1), map, walls);
+		}
+		if (!walls[current.x][current.y - 1] && map[current.x][current.y] + 1 < map[current.x][current.y - 1]) { //Go SOUTH
+			map[current.x][current.y - 1] = map[current.x][current.y] + 1;
+			traverse(new Point(current.x, current.y - 1), map, walls);
+		}
+	}
+
+	public int h_old(Node n) {
 		int h = 0;
 		// Map all boxes to their corresponding characters
 		HashMap<Character,Set<Point>> boxes = new HashMap<Character,Set<Point>>();
-		for (int row = 0; row < n.MAX_ROW; row++) {
-			for (int col = 0; col < n.MAX_COL; col++) {
+		for (int row = 0; row < Node.MAX_ROW; row++) {
+			for (int col = 0; col < Node.MAX_COL; col++) {
 				char boxChar = n.boxes[row][col];
 				// No box in cell
 				if (boxChar == 0)
