@@ -23,7 +23,6 @@ public abstract class Heuristic implements Comparator<Node> {
 	public int h(Node n) {
 		int h = 0;
 		int agentDistance = Integer.MAX_VALUE;
-		int penalty = 0;
 		n.goalCount = n.countAchievedGoals();
 		
 		HashMap<Character,HashSet<Point>> boxMap = extractMap(n.boxes);
@@ -37,7 +36,6 @@ public abstract class Heuristic implements Comparator<Node> {
 			
 			while (!queue.isEmpty())
 			{
-				//System.err.print("boxes.size(): " + boxes.size() + " goals.size(): " + goals.size() + " ");
 				Point goal = queue.poll();
 				
 				HashSet<Point> closestBoxes = findClosest(goal, boxes);
@@ -49,14 +47,9 @@ public abstract class Heuristic implements Comparator<Node> {
 					int distance = manhattanDistance(goal, box);
 					h += distance;
 					
-					if (n.goalCount > n.parent.goalCount)
+					if (n.parent != null && n.goalCount > n.parent.goalCount)
 					{
 						agentDistance = 0;
-					}
-					else if (n.goalCount < n.parent.goalCount)
-					{
-						agentDistance = 0;
-						penalty += 1;
 					}
 					else if (distance > 0)
 					{						
@@ -70,7 +63,6 @@ public abstract class Heuristic implements Comparator<Node> {
 				}
 				else 
 				{
-					//System.err.print("NoMatchFound ");
 					queue.add(goal);	
 				}
 			}
@@ -83,7 +75,7 @@ public abstract class Heuristic implements Comparator<Node> {
 			System.err.print("GOAL ");			
 		}
 		
-		return h + agentDistance + penalty;
+		return h + agentDistance;
 	}
 	
 	private Point findMatch(Point goal, HashSet<Point> goals, HashSet<Point> closestBoxes)
