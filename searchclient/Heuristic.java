@@ -31,12 +31,18 @@ public abstract class Heuristic implements Comparator<Node> {
 			}
 		}
 		this.goals = goals;
+		// printDistancesFromBoxesToGoals(initialState);
 	}
-
+	
 	public int h(Node n) {
 		int h = 0;
 		HashMap<Character, Set<Point>> boxes = findBoxes(n);
 		HashMap<Point, HashMap<Point, Integer>> dists = findDistances(n, boxes);
+
+		Point nodePoint = new Point(n.agentRow, n.agentCol);
+
+		Point closestBox = null;
+		int boxDist = Integer.MAX_VALUE;
 
 		for (Entry<Point, HashMap<Point, Integer>> boxEntry : dists.entrySet()) {
 			Point closestGoal = null;
@@ -47,10 +53,20 @@ public abstract class Heuristic implements Comparator<Node> {
 					minDist = goal.getValue();
 				}
 			}
-			h += minDist;
+			h += minDist + Math.max(Node.MAX_COL, Node.MAX_ROW);
+
+			int agentBoxDist = manhattanDistance(nodePoint, boxEntry.getKey());
+			if (closestBox == null || boxDist > agentBoxDist) 
+			{
+				closestBox = boxEntry.getKey();
+				boxDist = agentBoxDist;
+			}
 		}
 		
 		if (h == 0) return 0;
+		
+		if (boxDist > 1)
+			h += boxDist;
 		
 		return h;
 	}
@@ -76,7 +92,7 @@ public abstract class Heuristic implements Comparator<Node> {
 				Point shortestBox = null;
 
 				for (Point box : boxes.get(boxChar)) {
-					int distance = Math.abs(goal.x-box.x) + Math.abs(goal.y-box.y);
+					int distance = manhattanDistance(goal, box);
 					distances.get(box).put(goal, distance);
 				}
 			}
@@ -84,6 +100,24 @@ public abstract class Heuristic implements Comparator<Node> {
 
 		return distances;
 	} 
+
+	private int manhattanDistance(Point p1, Point p2) 
+	{
+		return Math.abs(p1.x-p2.x) + Math.abs(p1.y-p2.y); 
+	}
+
+	private void printDistancesFromBoxesToGoals(Node node)
+	{
+		HashMap<Point, HashMap<Point, Integer>> dists = findDistances(node, findBoxes(node));
+		for (Entry<Point, HashMap<Point, Integer>> boxEntry : dists.entrySet())
+		{
+			System.err.println("\nBox: " + boxEntry.getKey().y + "," + boxEntry.getKey().x);
+			for (Entry<Point, Integer> goal : boxEntry.getValue().entrySet())
+			{
+				System.err.println("\tGoal: " + goal.getKey().y + "," + goal.getKey().x + " \tDist: " + goal.getValue());
+			}
+		}
+	}
 
 	public int h_1(Node n) {
 		int h = 0;
